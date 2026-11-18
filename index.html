@@ -26,6 +26,7 @@ button:hover{border-color:var(--accent)}button:disabled{opacity:.55;cursor:wait}
 textarea{margin:.8rem 0;width:100%;display:block;min-height:325px;resize:vertical;background:#10161b;border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:.85rem;font:14px/1.55 ui-monospace,monospace;tab-size:2}
 #timer{font:700 1.1rem ui-monospace,monospace;color:var(--accent)}
 #results{margin-top:1rem}.result{padding:.6rem 0;border-top:1px solid var(--line)}.pass{color:var(--accent)}.fail{color:#ffb3ab}
+#customArgs,#customExpected{min-height:65px;height:80px}label{display:block;margin-top:.7rem}
 details{margin-top:1rem;border-top:1px solid var(--line);padding-top:.7rem}summary{cursor:pointer;color:var(--accent)}
 @media(max-width:1050px){.work{grid-template-columns:1fr}}
 @media(max-width:660px){.layout{display:block}nav{border-right:0;border-bottom:1px solid var(--line);padding:.65rem 1rem;display:flex;overflow:auto;gap:.3rem}nav button{width:auto;flex-shrink:0}header{padding:.8rem 1rem}textarea{min-height:235px}}
@@ -48,6 +49,14 @@ details{margin-top:1rem;border-top:1px solid var(--line);padding-top:.7rem}summa
 <div class="toolbar between"><h2 id="editorLabel">Your JavaScript</h2><small class="muted" id="storage"></small></div>
 <textarea id="editor" aria-labelledby="editorLabel" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
 <div class="toolbar"><button class="primary" id="evaluate">Evaluate</button><button id="resetCode">Reset code</button><small class="muted">Evaluate after tracing your code by hand.</small></div>
+<details><summary>Custom test case</summary>
+<p class="muted" id="customHelp"></p>
+<label for="customArgs">Arguments as a JSON array</label>
+<textarea id="customArgs" spellcheck="false"></textarea>
+<label for="customExpected">Expected output as JSON</label>
+<textarea id="customExpected" spellcheck="false"></textarea>
+<div class="toolbar"><button id="evaluateCustom">Evaluate custom case</button><button id="sampleCustom">Load sample case</button></div>
+</details>
 <div id="results" aria-live="polite"></div>
 </section>
 </div>
@@ -225,6 +234,7 @@ function stopEvaluation() {
   activeWorker = null;
   workerUrl = undefined;
   button.disabled = false;
+  $('evaluateCustom').disabled = false;
   button.textContent = 'Evaluate';
 }
 
@@ -241,6 +251,9 @@ function select(index) {
     ')\n→ ' + JSON.stringify(expected);
   $('hint').textContent = problem.hint;
   $('hintBox').open = false;
+  $('customHelp').textContent = 'Pass ' + problem.params + ' in that order. ' +
+    (problem.tree ? 'Encode root as a breadth-first array, using null for missing children.' : 'Strings use double quotes.');
+  loadSampleCase();
   editor.value = state.drafts[index] ?? starter(problem);
   $('results').replaceChildren();
   renderNav();
@@ -248,11 +261,31 @@ function select(index) {
   save();
 }
 
-function evaluate() {
+function loadSampleCase() {
+  const [args, expected] = questions[selected].cases[0];
+  $('customArgs').value = JSON.stringify(args);
+  $('customExpected').value = JSON.stringify(expected);
+}
+
+function evaluate(custom = false) {
   if (activeWorker) return;
   const source = editor.value;
-  const problem = questions[selected];
+  let problem = questions[selected];
   const results = $('results');
+  if (custom) {
+    try {
+      const args = JSON.parse($('customArgs').value);
+      const expected = JSON.parse($('customExpected').value);
+      const argumentCount = problem.params.split(',').length;
+      if (!Array.isArray(args) || args.length !== argumentCount) {
+        throw new Error('Arguments must be a JSON array containing ' + argumentCount + ' argument(s).');
+      }
+      problem = {...problem, cases:[[args, expected]]};
+    } catch (error) {
+      results.textContent = 'Invalid custom case. ' + error.message;
+      return;
+    }
+  }
   results.textContent = 'Running tests…';
   const workerSource = 'self.onmessage = ({data}) => { try { self.postMessage({cases: (' +
     runSuite.toString() + ')(data)}); } catch (error) { self.postMessage({error: String(error)}); } };';
@@ -268,6 +301,7 @@ function evaluate() {
   activeWorker = worker;
   workerUrl = url;
   button.disabled = true;
+  $('evaluateCustom').disabled = true;
   button.textContent = 'Evaluating…';
   worker.onmessage = ({data}) => {
     if (worker !== activeWorker) return;
@@ -278,7 +312,7 @@ function evaluate() {
     }
     const count = data.cases.filter(test => test.passed).length;
     const heading = document.createElement('h2');
-    heading.textContent = count + ' / ' + data.cases.length + ' tests passed';
+    heading.textContent = count + ' / ' + data.cases.length + (custom ? ' custom tests passed' : ' tests passed');
     heading.className = count === data.cases.length ? 'pass' : 'fail';
     results.replaceChildren(heading);
     data.cases.forEach((test,index) => {
@@ -296,7 +330,7 @@ function evaluate() {
       row.append(label,detail);
       results.append(row);
     });
-    if (count === data.cases.length) state.passed[selected] = true;
+    if (!custom && count === data.cases.length) state.passed[selected] = true;
     renderNav();
     save();
   };
@@ -337,7 +371,9 @@ editor.addEventListener('keydown',event => {
     evaluate();
   }
 });
-button.onclick = evaluate;
+button.onclick = () => evaluate();
+$('evaluateCustom').onclick = () => evaluate(true);
+$('sampleCustom').onclick = loadSampleCase;
 $('resetCode').onclick = () => {
   const initial = starter(questions[selected]);
   if (editor.value !== initial && !confirm('Replace your draft with the starter code?')) return;
