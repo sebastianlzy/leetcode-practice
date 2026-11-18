@@ -1,0 +1,368 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Google Round 1 Practice</title>
+<style>
+:root{color-scheme:dark;--bg:#101418;--panel:#171e24;--line:#303b45;--muted:#aab8c4;--ink:#f2f5f7;--accent:#a4edca}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 system-ui,sans-serif}
+header{display:flex;align-items:center;justify-content:space-between;gap:1rem;padding:1rem clamp(1rem,4vw,3rem);border-bottom:1px solid var(--line)}
+header strong{font-size:1.08rem}header small,.muted{color:var(--muted)}
+.layout{max-width:1500px;margin:auto;display:grid;grid-template-columns:250px minmax(0,1fr);min-height:calc(100vh - 64px)}
+nav{border-right:1px solid var(--line);padding:1.25rem}
+nav button{display:flex;text-align:left;align-items:center;width:100%;gap:.7rem;background:transparent;border-color:transparent;margin:.15rem 0}
+nav button[aria-current=true]{background:#23372f;color:var(--accent);border-color:#3a594c}
+.day{font-variant-numeric:tabular-nums;color:var(--muted);font-size:.78rem;min-width:1.65rem}
+main{padding:clamp(1rem,3vw,2.5rem);min-width:0}
+h1{font-size:clamp(1.65rem,4vw,2.7rem);letter-spacing:-.04em;line-height:1.12;margin:.2rem 0 1rem}
+h2{font-size:1rem;margin:0 0 .6rem}p{margin:.5rem 0 1rem}pre{white-space:pre-wrap;overflow-wrap:anywhere;margin:0;font-size:.87rem}
+.work{display:grid;grid-template-columns:minmax(0,.85fr) minmax(0,1.15fr);gap:1rem;margin-top:1.25rem;align-items:start}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:1rem;min-width:0}
+.toolbar{display:flex;align-items:center;flex-wrap:wrap;gap:.55rem}.between{justify-content:space-between}
+button{font:inherit;color:var(--ink);border:1px solid var(--line);padding:.4rem .65rem;border-radius:7px;background:#202932;cursor:pointer}
+button:hover{border-color:var(--accent)}button:disabled{opacity:.55;cursor:wait}button.primary{background:var(--accent);color:#12231b;border-color:var(--accent);font-weight:700}
+:focus-visible{outline:2px solid var(--accent);outline-offset:2px}
+textarea{margin:.8rem 0;width:100%;display:block;min-height:325px;resize:vertical;background:#10161b;border:1px solid var(--line);border-radius:8px;color:var(--ink);padding:.85rem;font:14px/1.55 ui-monospace,monospace;tab-size:2}
+#timer{font:700 1.1rem ui-monospace,monospace;color:var(--accent)}
+#results{margin-top:1rem}.result{padding:.6rem 0;border-top:1px solid var(--line)}.pass{color:var(--accent)}.fail{color:#ffb3ab}
+details{margin-top:1rem;border-top:1px solid var(--line);padding-top:.7rem}summary{cursor:pointer;color:var(--accent)}
+@media(max-width:1050px){.work{grid-template-columns:1fr}}
+@media(max-width:660px){.layout{display:block}nav{border-right:0;border-bottom:1px solid var(--line);padding:.65rem 1rem;display:flex;overflow:auto;gap:.3rem}nav button{width:auto;flex-shrink:0}header{padding:.8rem 1rem}textarea{min-height:235px}}
+</style>
+</head>
+<body>
+<header><strong>Google Round 1 Practice</strong><small>JavaScript · Offline</small></header>
+<div class="layout">
+<nav id="questions" aria-label="Practice questions"></nav>
+<main>
+<div class="toolbar between"><span class="muted" id="dayLabel"></span><div class="toolbar"><output id="timer" aria-label="Time remaining"></output><button id="start">Start timer</button><button id="resetTimer">Reset timer</button></div></div>
+<h1 id="title"></h1>
+<div class="work">
+<section class="card" aria-labelledby="promptLabel">
+<h2 id="promptLabel">Problem</h2><p id="prompt"></p>
+<h2>Example</h2><pre id="example"></pre>
+<details id="hintBox"><summary>Reveal hint</summary><p id="hint"></p></details>
+</section>
+<section class="card" aria-labelledby="editorLabel">
+<div class="toolbar between"><h2 id="editorLabel">Your JavaScript</h2><small class="muted" id="storage"></small></div>
+<textarea id="editor" aria-labelledby="editorLabel" spellcheck="false" autocapitalize="off" autocomplete="off"></textarea>
+<div class="toolbar"><button class="primary" id="evaluate">Evaluate</button><button id="resetCode">Reset code</button><small class="muted">Evaluate after tracing your code by hand.</small></div>
+<div id="results" aria-live="polite"></div>
+</section>
+</div>
+</main>
+</div>
+<script>
+const island = (...rows) => rows.map(row => [...row]);
+const questions = [
+  {title:"Longest Substring Without Repeating Characters", number:3, minutes:30, fn:"lengthOfLongestSubstring", params:"s",
+    prompt:"Given a string s containing English letters, digits, symbols, and spaces, return the length of its longest contiguous substring with no repeated character. s may be empty. The offline stress test has 100,000 characters.",
+    hint:"Track the last index for each character. Move the left edge only when a repeat lies within the current window.",
+    cases:[[["abcabcbb"],3],[[""],0],[["a"],1],[["abba"],2],[["abbaa"],2],[["pwwkew"],3],[["a b!"],4],
+      [[Array.from({length:95}, (_, index) => String.fromCharCode(32 + index)).join('').repeat(1053).slice(0,100000)],95]]},
+  {title:"Two Sum", number:1, minutes:15, fn:"twoSum", params:"nums, target", order:"pair",
+    prompt:"Given an integer array nums and integer target, return the indices of two different entries whose values sum to target. Exactly one pair exists. You may return the indices in either order. nums has 2 to 10,000 entries.",
+    hint:"For each value, look for its complement among the entries you've already seen.",
+    cases:[[[[2,7,11,15],9],[0,1]],[[[3,3],6],[0,1]],[[[3,2,4],6],[1,2]],[[[-3,4,3,90],0],[0,2]]]},
+  {title:"Minimum Size Subarray Sum", number:209, minutes:25, fn:"minSubArrayLen", params:"target, nums",
+    prompt:"Given a positive integer target and up to 100,000 positive integers in nums, return the shortest length of a contiguous subarray whose sum is at least target. Return 0 if none exists.",
+    hint:"Once the sum meets the target, record the length and try dropping elements from the left.",
+    cases:[[[7,[2,3,1,2,4,3]],2],[[4,[1,4,4]],1],[[11,[1,1,1,1]],0],[[8,[2,2,2,2]],4],[[5,[5]],1]]},
+  {title:"Search Insert Position", number:35, minutes:15, fn:"searchInsert", params:"nums, target",
+    prompt:"Given a nonempty array of distinct integers sorted in ascending order, return the index of target, or the index where it should be inserted to keep the array sorted. Aim for O(log n) time.",
+    hint:"Find the first index whose value is at least the target. Use the array length as the boundary when no such index exists.",
+    cases:[[[[1,3,5,6],5],2],[[[1,3,5,6],2],1],[[[1,3,5,6],7],4],[[[1,3,5,6],0],0],[[[1],1],0]]},
+  {title:"Merge Intervals", number:56, minutes:25, fn:"merge", params:"intervals",
+    prompt:"Given up to 10,000 closed intervals [start, end], merge all overlaps and return the resulting non-overlapping intervals in any order. Two intervals that touch at an endpoint overlap.",
+    hint:"Sort by start, then compare each interval with the last merged interval.",
+    order:"groups", cases:[[[[[1,3],[2,6],[8,10],[15,18]]],[[1,6],[8,10],[15,18]]],[[[[1,4],[4,5]]],[[1,5]]],[[[[5,7],[1,9],[2,3]]],[[1,9]]],[[[[3,3],[2,2]]],[[2,2],[3,3]]]]},
+  {title:"Number of Islands", number:200, minutes:30, fn:"numIslands", params:"grid", preserve:true,
+    prompt:"Count islands in a rectangular grid of string values \"0\" and \"1\". An island is a group of land cells connected horizontally or vertically. Dimensions are at most 300 by 300. For this practice version, preserve the input grid.",
+    hint:"Start a traversal at every unvisited land cell. Mark a cell visited as soon as you enqueue it.",
+    cases:[[[island("110","010","001")],2],[[island("10","01")],2],[[island("00","00")],0],[[island("1")],1],[[island("111","101","111")],1]]},
+  {title:"Group Anagrams", number:49, minutes:60, fn:"groupAnagrams", params:"strs", order:"anagrams",
+    prompt:"Given up to 10,000 strings consisting of lowercase English letters, group strings that contain the same letters with the same multiplicities. Each group and the list of groups may be in any order.",
+    hint:"A sorted string or a vector of letter counts can serve as a grouping key.",
+    cases:[[[["eat","tea","tan","ate","nat","bat"]],[["eat","tea","ate"],["tan","nat"],["bat"]]],[[[""]],[[""]]],[[["a","a","ab","ba","aa"]],[["a","a"],["ab","ba"],["aa"]]]]},
+  {title:"Valid Parentheses", number:20, minutes:15, fn:"isValid", params:"s",
+    prompt:"Given a string of parentheses, square brackets, and braces, return whether every opening bracket closes with the same type and openings close in the correct order.",
+    hint:"Each closer must match the most recent unmatched opener.",
+    cases:[[["()[]{}"],true],[["([)]"],false],[["((("],false],[["]"],false],[["{[]}"],true]]},
+  {title:"Product of Array Except Self", number:238, minutes:30, fn:"productExceptSelf", params:"nums",
+    prompt:"For each index of nums, return the product of all entries except the entry at that index. nums contains 2 to 100,000 integers. Prefix and suffix products fit in a signed 32-bit integer. Use O(n) time without division.",
+    hint:"Combine the product strictly to the left with the product strictly to the right.",
+    cases:[[[[1,2,3,4]],[24,12,8,6]],[[[-1,1,0,-3,3]],[0,0,9,0,0]],[[[0,2,0]],[0,0,0]],[[[-2,3]],[3,-2]]]},
+  {title:"Search in Rotated Sorted Array", number:33, minutes:30, fn:"search", params:"nums, target",
+    prompt:"An ascending array of distinct integers may have been rotated at an unknown index. Return the index of target, or -1 if absent. Aim for O(log n) time.",
+    hint:"In each search range, identify a sorted half and check whether its endpoints bound the target.",
+    cases:[[[[4,5,6,7,0,1,2],0],4],[[[4,5,6,7,0,1,2],3],-1],[[[1],0],-1],[[[3,1],1],1],[[[1,2,3],3],2]]},
+  {title:"Kth Largest Element in an Array", number:215, minutes:35, fn:"findKthLargest", params:"nums, k",
+    prompt:"Given up to 100,000 integers and a valid k, return the kth largest entry, counting duplicates. Try solving it without sorting the whole array.",
+    hint:"A min-heap of size k can keep the k largest values seen so far.",
+    cases:[[[[3,2,1,5,6,4],2],5],[[[3,2,3,1,2,4,5,5,6],4],4],[[[-1,-5,-3],1],-1],[[[2,2],2],2]]},
+  {title:"Binary Tree Level Order Traversal", number:102, minutes:60, fn:"levelOrder", params:"root", tree:true,
+    prompt:"Given the root of a binary tree, return the values grouped by depth, visiting each level from left to right. Each node has val, left, and right properties. The examples encode the tree in breadth-first order with null for missing children. Your function receives the root node.",
+    hint:"Capture the queue's current end before processing each level. Children added beyond it belong to the next level.",
+    cases:[[[[3,9,20,null,null,15,7]],[[3],[9,20],[15,7]]],[[[]],[]],[[[1]],[[1]]],[[[1,null,2,3]],[[1],[2],[3]]]]},
+  {title:"House Robber", number:198, minutes:30, fn:"rob", params:"nums",
+    prompt:"Given a nonempty array of nonnegative amounts, return the largest sum you can take without choosing any two adjacent entries.",
+    hint:"At each index, compare skipping the current house with taking it plus the best total through two houses back.",
+    cases:[[[[1,2,3,1]],4],[[[2,7,9,3,1]],12],[[[2,1,1,2]],4],[[[0]],0],[[[3,8]],8]]},
+  {title:"Course Schedule", number:207, minutes:60, fn:"canFinish", params:"numCourses, prerequisites",
+    prompt:"There are numCourses courses numbered from 0 through numCourses - 1. Each pair [course, prerequisite] means you must complete prerequisite before course. Return whether you can complete every course.",
+    hint:"Try counting unmet prerequisites and processing courses with zero unmet prerequisites.",
+    cases:[[[2,[[1,0]]],true],[[2,[[1,0],[0,1]]],false],[[5,[[1,0],[3,2],[2,3]]],false],[[4,[[1,0],[2,0],[3,1],[3,2]]],true],[[3,[]],true]]}
+];
+
+function runSuite({source, problem}) {
+  const solve = new Function(source + '\nreturn typeof ' + problem.fn +
+    ' === "function" ? ' + problem.fn + ' : null;')();
+  if (!solve) throw new Error('Define a function named ' + problem.fn + '.');
+
+  function toTree(values) {
+    if (!values.length || values[0] === null) return null;
+    const root = {val:values[0], left:null, right:null};
+    const queue = [root];
+    let index = 1;
+    for (let head = 0; head < queue.length && index < values.length; head++) {
+      for (const side of ['left','right']) {
+        if (index === values.length) break;
+        const val = values[index++];
+        if (val === null) continue;
+        const child = {val, left:null, right:null};
+        queue[head][side] = child;
+        queue.push(child);
+      }
+    }
+    return root;
+  }
+
+  function normalize(value) {
+    if (!Array.isArray(value)) return value;
+    if (problem.order === 'pair') return [...value].sort((a,b) => a-b);
+    if (problem.order === 'groups' || problem.order === 'anagrams') {
+      return value.map(group => JSON.stringify(problem.order === 'anagrams' && Array.isArray(group)
+        ? [...group].sort() : group)).sort();
+    }
+    return value;
+  }
+
+  function equal(a,b) {
+    if (Array.isArray(b)) {
+      return Array.isArray(a) && a.length === b.length &&
+        b.every((item,index) => equal(a[index],item));
+    }
+    return a === b;
+  }
+
+  return problem.cases.map(([input, expected]) => {
+    try {
+      const args = JSON.parse(JSON.stringify(input));
+      if (problem.tree) args[0] = toTree(args[0]);
+      const actual = solve(...args);
+      const mutated = problem.preserve && JSON.stringify(args) !== JSON.stringify(input);
+      const passed = equal(normalize(actual), normalize(expected)) && !mutated;
+      return {passed, input, expected, actual:JSON.stringify(actual) ?? String(actual),
+        note:mutated ? 'The function modified the input grid.' : ''};
+    } catch (error) {
+      return {passed:false, input, expected, actual:'Error', note:String(error)};
+    }
+  });
+}
+
+const $ = id => document.getElementById(id);
+const storageKey = 'google-round-one-practice-v1';
+let state = {selected:1, drafts:{}, timers:{}, passed:{}};
+let local = true;
+try {
+  const saved = JSON.parse(localStorage.getItem(storageKey));
+  if (saved) state = {...state,...saved};
+} catch { local = false; }
+let selected = questions[state.selected] ? state.selected : 0;
+let activeWorker = null;
+let workerUrl;
+let workerTimeout;
+const editor = $('editor');
+const button = $('evaluate');
+const starter = problem => 'var ' + problem.fn + ' = function (' + problem.params + ') {\n  \n};\n';
+
+function save() {
+  if (local) {
+    try { localStorage.setItem(storageKey,JSON.stringify(state)); }
+    catch { local = false; }
+  }
+  $('storage').textContent = local ? 'Drafts saved in this browser' : 'Drafts last while this tab stays open';
+}
+
+function timerState() {
+  return state.timers[selected] ??= {remaining:questions[selected].minutes * 60000, end:null};
+}
+
+function renderTimer() {
+  const timer = timerState();
+  if (timer.end !== null && timer.end <= Date.now()) {
+    timer.remaining = 0;
+    timer.end = null;
+    save();
+  }
+  const seconds = Math.ceil((timer.end === null ? timer.remaining : Math.max(0,timer.end - Date.now())) / 1000);
+  $('timer').textContent = String(Math.floor(seconds/60)).padStart(2,'0') + ':' + String(seconds%60).padStart(2,'0');
+  $('start').textContent = timer.end !== null ? 'Pause' : seconds ? 'Start timer' : 'Restart timer';
+}
+
+function renderNav() {
+  [...$('questions').children].forEach((link,index) => {
+    link.setAttribute('aria-current',String(index === selected));
+    link.firstChild.textContent = String(index+1).padStart(2,'0') + (state.passed[index] ? ' ✓' : '');
+  });
+}
+
+function stopEvaluation() {
+  clearTimeout(workerTimeout);
+  if (activeWorker) activeWorker.terminate();
+  if (workerUrl) URL.revokeObjectURL(workerUrl);
+  activeWorker = null;
+  workerUrl = undefined;
+  button.disabled = false;
+  button.textContent = 'Evaluate';
+}
+
+function select(index) {
+  stopEvaluation();
+  selected = index;
+  state.selected = index;
+  const problem = questions[index];
+  $('dayLabel').textContent = 'Day ' + (index+1) + ' · #' + problem.number + (problem.minutes === 60 ? ' · Mock' : '');
+  $('title').textContent = problem.title;
+  $('prompt').textContent = problem.prompt;
+  const [args, expected] = problem.cases[0];
+  $('example').textContent = problem.fn + '(' + args.map(value => JSON.stringify(value)).join(', ') +
+    ')\n→ ' + JSON.stringify(expected);
+  $('hint').textContent = problem.hint;
+  $('hintBox').open = false;
+  editor.value = state.drafts[index] ?? starter(problem);
+  $('results').replaceChildren();
+  renderNav();
+  renderTimer();
+  save();
+}
+
+function evaluate() {
+  if (activeWorker) return;
+  const source = editor.value;
+  const problem = questions[selected];
+  const results = $('results');
+  results.textContent = 'Running tests…';
+  const workerSource = 'self.onmessage = ({data}) => { try { self.postMessage({cases: (' +
+    runSuite.toString() + ')(data)}); } catch (error) { self.postMessage({error: String(error)}); } };';
+  const url = URL.createObjectURL(new Blob([workerSource],{type:'text/javascript'}));
+  let worker;
+  try {
+    worker = new Worker(url);
+  } catch (error) {
+    URL.revokeObjectURL(url);
+    results.textContent = 'Could not start the evaluator. Open this file in Chrome. ' + error.message;
+    return;
+  }
+  activeWorker = worker;
+  workerUrl = url;
+  button.disabled = true;
+  button.textContent = 'Evaluating…';
+  worker.onmessage = ({data}) => {
+    if (worker !== activeWorker) return;
+    stopEvaluation();
+    if (data.error) {
+      results.textContent = data.error;
+      return;
+    }
+    const count = data.cases.filter(test => test.passed).length;
+    const heading = document.createElement('h2');
+    heading.textContent = count + ' / ' + data.cases.length + ' tests passed';
+    heading.className = count === data.cases.length ? 'pass' : 'fail';
+    results.replaceChildren(heading);
+    data.cases.forEach((test,index) => {
+      const row = document.createElement('div');
+      row.className = 'result';
+      const label = document.createElement('strong');
+      label.textContent = (test.passed ? 'Pass' : 'Fail') + ' · Case ' + (index+1);
+      label.className = test.passed ? 'pass' : 'fail';
+      const detail = document.createElement('pre');
+      const input = test.input.map(value => typeof value === 'string' && value.length > 140
+        ? JSON.stringify(value.slice(0,100)) + '… (' + value.length + ' characters)'
+        : JSON.stringify(value)).join(', ');
+      detail.textContent = 'Arguments  ' + input + '\nExpected   ' +
+        JSON.stringify(test.expected) + '\nReturned   ' + test.actual + (test.note ? '\n' + test.note : '');
+      row.append(label,detail);
+      results.append(row);
+    });
+    if (count === data.cases.length) state.passed[selected] = true;
+    renderNav();
+    save();
+  };
+  worker.onerror = event => {
+    if (worker !== activeWorker) return;
+    stopEvaluation();
+    results.textContent = event.message || 'The evaluator could not start. Try opening this file directly in Chrome.';
+  };
+  workerTimeout = setTimeout(() => {
+    if (worker !== activeWorker) return;
+    stopEvaluation();
+    results.textContent = 'Evaluation stopped after 3 seconds. Check for an infinite loop or slow code.';
+  },3000);
+  worker.postMessage({source,problem});
+}
+
+questions.forEach((problem,index) => {
+  const item = document.createElement('button');
+  const day = document.createElement('span');
+  day.className = 'day';
+  item.append(day,document.createTextNode(problem.title));
+  item.onclick = () => select(index);
+  $('questions').append(item);
+});
+editor.addEventListener('input',() => {
+  state.drafts[selected] = editor.value;
+  if (activeWorker) {
+    stopEvaluation();
+    $('results').textContent = 'Code changed. Evaluate again to test the new draft.';
+  } else if ($('results').textContent) {
+    $('results').textContent = 'Code changed. Evaluate again to test the new draft.';
+  }
+  save();
+});
+editor.addEventListener('keydown',event => {
+  if ((event.ctrlKey || event.metaKey) && event.key === 'Enter') {
+    event.preventDefault();
+    evaluate();
+  }
+});
+button.onclick = evaluate;
+$('resetCode').onclick = () => {
+  const initial = starter(questions[selected]);
+  if (editor.value !== initial && !confirm('Replace your draft with the starter code?')) return;
+  editor.value = initial;
+  editor.dispatchEvent(new Event('input'));
+};
+$('start').onclick = () => {
+  const timer = timerState();
+  if (timer.end !== null) {
+    timer.remaining = Math.max(0,timer.end - Date.now());
+    timer.end = null;
+  } else {
+    timer.remaining ||= questions[selected].minutes * 60000;
+    timer.end = Date.now() + timer.remaining;
+  }
+  renderTimer();
+  save();
+};
+$('resetTimer').onclick = () => {
+  delete state.timers[selected];
+  renderTimer();
+  save();
+};
+select(selected);
+setInterval(renderTimer,250);
+</script>
+</body>
+</html>
